@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"> -->
+    <link href="https://unpkg.com/bootstrap-table@1.22.0/dist/bootstrap-table.min.css" rel="stylesheet">
+
+    <script src="https://unpkg.com/tableexport.jquery.plugin/tableExport.min.js"></script>
+    <script src="https://unpkg.com/bootstrap-table@1.22.0/dist/bootstrap-table.min.js"></script>
+    <script src="https://unpkg.com/bootstrap-table@1.22.0/dist/extensions/export/bootstrap-table-export.min.js"></script>
+
+
+    <title>Centelha</title>
+</head>
+<body>
+
+    <div class="container-fluid">
+        <div class="row">
+
+            <div class="col">
+                <main class="mt-5">
+                    <div class="d-none">
+                        <div id="signupMessageonline" style="display: none;">
+                            <p>Bem-vindo, <span id="loggedInUserName"></span>!</p>
+                            <button id="logoutButton" class="btn btn-secondary">Sair</button>
+                        </div>
+                        <div id="signupMessage" style="display: none;">
+                            <p>Você não está logado.</p>
+                            <a href="cadastro_javascript.html" class="btn btn-primary">Cadastrar</a>
+                            <button id="loginMessageButton" class="btn btn-secondary">Entrar</button>
+                        </div>
+                    </div>
+
+                    <div id="errorContainer" style="display: none;"></div>
+
+
+
+                    <form id="searchForm_facepe">
+                        <!-- <div class="mb-3">
+
+                            <input type="text" class="form-control" id="searchTerm_facepe" placeholder="Termo de busca">
+                        </div>
+                        <button id="searchButton-facepe" type="submit" class="btn btn-primary">Buscar</button> -->
+                        <div class="input-group mb-3">
+                            <input type="text" class="form-control" id="searchTerm_facepe" placeholder="Busca FACEPE"  aria-describedby="button-addon2">
+                            <button class="btn btn-outline-primary" id="searchButton-facepe"  id="button-addon2"> <i class="fa-solid fa-magnifying-glass"></i> Buscar</button>
+                          </div>
+                    </form>
+                    <!-- <p>Quantidade de resultados: <span id="quantidade-div">0</span></p> -->
+
+
+                    <!-- <details>
+                        <summary>Filtros Avançados</summary>
+                        <p>Mais informações sobre os detalhes.</p>
+                      </details> -->
+
+
+
+                    <div id="authenticatedContent_embrapii" style="display: none;" class="mt-2">
+                        <div class="card-columns" id="cardColumns_embrapii"></div>
+                    </div>
+
+                    <div id="cardColumns_facepe"></div>
+
+                </main>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/aws-sdk/2.395.0/aws-sdk.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@4.5.3/dist/amazon-cognito-identity.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+
+
+    <script>
+        const poolData = {
+            UserPoolId: 'us-east-1_BaiGmcUff', // Seu User Pool ID aqui
+            ClientId: '26mu8coq65rn4pvl06eturijqh' // Seu Client ID aqui
+        };
+        const userPool = new AmazonCognitoIdentity.CognitoUserPool(poolData);
+
+        function redirectToAuthenticatedPage(name) {
+            document.getElementById('authenticatedContent').style.display = 'block';
+            document.getElementById('loggedInUserName').textContent = name;
+            document.getElementById('loginForm').style.display = 'none';
+            checkAuthentication();
+        }
+
+        function displayErrorMessage(message) {
+            const errorContainer = document.getElementById('errorContainer');
+            errorContainer.innerHTML = '';
+            const errorMessage = document.createElement('p');
+            errorMessage.textContent = message;
+            errorContainer.appendChild(errorMessage);
+            errorContainer.style.display = 'block';
+        }
+
+        function checkAuthentication() {
+            const loggedInUser = localStorage.getItem('loggedInUser');
+            const searchForm = document.getElementById('searchForm');
+            const signupMessage = document.getElementById('signupMessage');
+            const tableLog = document.getElementById('authenticatedContent');
+            const signupMessageonline = document.getElementById('signupMessageonline');
+
+            if (!loggedInUser) {
+                searchForm.style.display = 'none';
+                signupMessage.style.display = 'block';
+                signupMessageonline.style.display = 'none';
+            } else {
+                searchForm.style.display = 'block';
+                signupMessage.style.display = 'none';
+                tableLog.style.display = 'block';
+                signupMessageonline.style.display = 'block';
+            }
+        }
+
+        window.addEventListener('load', function () {
+            checkAuthentication();
+        });
+
+        function logout() {
+            const cognitoUser = userPool.getCurrentUser();
+            if (cognitoUser) {
+                cognitoUser.signOut();
+            }
+            localStorage.removeItem('loggedInUser');
+            window.location.href = 'logout.html'; // Redirecionar para a página logout.html
+        }
+
+
+
+        window.addEventListener('load', function () {
+            const loggedInUser = localStorage.getItem('loggedInUser');
+            if (loggedInUser) {
+                redirectToAuthenticatedPage(loggedInUser);
+
+                const cognitoUser = userPool.getCurrentUser();
+                if (cognitoUser) {
+                    cognitoUser.getSession(function (err, session) {
+                        if (err) {
+                            displayErrorMessage(err.message || 'Ocorreu um erro durante o login.');
+                            return;
+                        }
+                        const authToken = session.getIdToken().getJwtToken();
+
+                        document.getElementById('searchForm_facepe').addEventListener('submit', function (e) {
+                            e.preventDefault();
+                            const searchTerm_facepe = document.getElementById('searchTerm_facepe').value;
+                            executeGraphQLQueryFacepe(authToken, searchTerm_facepe);
+                        });
+
+                        executeGraphQLQueryFacepe(authToken, '');
+                    });
+                }
+            }
+        });
+
+        document.getElementById('loginForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            const authenticationData = {
+                Username: username,
+                Password: password
+            };
+            const authenticationDetails = new AmazonCognitoIdentity.AuthenticationDetails(authenticationData);
+
+            const userData = {
+                Username: username,
+                Pool: userPool
+            };
+            const cognitoUser = new AmazonCognitoIdentity.CognitoUser(userData);
+
+            cognitoUser.authenticateUser(authenticationDetails, {
+                onSuccess: function (result) {
+                    const accessToken = result.getAccessToken().getJwtToken();
+                    const name = result.getIdToken().payload.name;
+
+                    localStorage.setItem('loggedInUser', name);
+
+                    redirectToAuthenticatedPage(name);
+                },
+                onFailure: function (err) {
+                    displayErrorMessage(err.message || 'Ocorreu um erro durante o login.');
+                }
+            });
+        });
+
+        document.getElementById('logoutButton').addEventListener('click', logout);
+    </script>
+
+
+<script>
+
+function executeGraphQLQueryFacepe(authToken, searchTerm_facepe) {
+    const query = `query MyQuery {
+  searchAllFACEPENotice {
+    id
+    pdf
+    provider
+    publication_dt
+    title
+    updated_at
+    url
+    type
+  }
+}
+ `;
+    const graphqlEndpoint = 'https://alprko6tgjdincp4yvnavge7cm.appsync-api.us-east-1.amazonaws.com/graphql'; // Substitua pelo URL do seu endpoint GraphQL
+
+    const headers = {
+        Authorization: authToken,
+        'Content-Type': 'application/json'
+    };
+
+    fetch(graphqlEndpoint, {
+    method: 'POST',
+    headers: headers,
+    body: JSON.stringify({
+        query: query
+    })
+})
+    .then((response) => response.json())
+    .then((data) => {
+        const cardColumns = document.getElementById('cardColumns_facepe');
+        cardColumns.innerHTML = '';
+
+        const searchAllFACEPENotice = data.data.searchAllFACEPENotice || [];
+        const searchAllFacepe2 = data.data.searchAllFacepe2 || [];
+        // const combinedResults = [...searchFINEPNotice, ...searchResearchGroup];
+        const combinedResults = [...searchAllFACEPENotice, ...(searchAllFACEPENotice.result || [])];
+
+        if (combinedResults.length > 0) {
+        const countDiv = document.createElement('div');
+        countDiv.textContent = `Número de registros encontrados: ${combinedResults.length}`;
+        cardColumns.appendChild(countDiv);
+    } else {
+        const noResultsDiv = document.createElement('div');
+        noResultsDiv.textContent = "";
+        cardColumns.appendChild(noResultsDiv);
+    }
+
+        console.log("Combined Results:", combinedResults);
+
+        combinedResults.forEach((item) => {
+            const card = document.createElement('div');
+            card.classList.add('card', 'mb-3');
+            card.id = `card-buscar`;
+            card.innerHTML = `
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                    <h4 class="mb-2 line-clamp-1 lh-sm flex-1 me-5 border-bottom" data-bs-toggle="tooltip" data-bs-placement="top" title="${item.title}">${item.title}</h4>
+
+
+                        <a target="blank" href="${item.url}" class="btn btn-soft-primary me-1 mb-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Ver site original"><i class="fa-regular fa-eye"></i></a>
+
+
+
+
+                  </div>
+
+                  <span class="badge badge-phoenix fs--2 mb-4 badge-phoenix-${item.type === 'research_group' ? 'success' : 'primary'}"><span class="badge-label">${item.type === 'research_group' ? 'CNPQ' : 'FACEPE'}</span></span>
+
+
+
+
+
+
+
+                  <div class="d-flex align-items-center mb-3 ${item.matter !== undefined ? '' : 'd-none'}"><span class="fa-solid ${item.matter !== undefined ? 'fa-book' : 'fa-building-columns'} me-2 text-700 fs--1 fw-extra-bold"></span>
+                    <p class="fw-bold mb-0  lh-1">${item.matter !== undefined ? 'Matéria:' : ''} <span class="fw-semi-bold text-primary ms-1"> ${item.matter !== undefined ? item.matter : ''}</span></p>
+                  </div>
+
+
+
+                  <div class="d-flex align-items-center mb-3 ${item.institution !== undefined ? '' : 'd-none'}"><span class="fa-solid ${item.institution !== undefined ? 'fa-book' : ''} me-2 text-700 fs--1 fw-extra-bold"></span>
+                    <p class="fw-bold mb-0  lh-1">${item.institution !== undefined ? 'Instituição:' : ''} <span class="fw-semi-bold text-primary ms-1"> ${item.institution !== undefined ? item.institution : ''}</span></p>
+
+
+                  </div>
+
+                  <div class="d-flex align-items-center mb-3 ${item.area !== undefined ? 'border-bottom' : 'd-none'}"><span class="fa-solid ${item.area !== undefined ? 'fa-flask' : ''} me-2 text-700 fs--1 fw-extra-bold"></span>
+                    <p class="fw-bold mb-0  lh-1">${item.area !== undefined ? 'Área:' : ''} <span class="fw-semi-bold text-primary ms-1"> ${item.area !== undefined ? item.area : ''}</span></p>
+                  </div>
+
+
+
+
+                </div>
+                <div class="card-footer">
+
+                  <div class="row justify-content-center">
+                    <div class="col-md-6">
+                        <div class="d-flex justify-content-between">
+                            <a target="blank" href="${item.pdf}" class="btn btn-soft-primary me-1 mb-1 ${item.pdf !== undefined ? '' : 'd-none'} " data-bs-toggle="tooltip" data-bs-placement="top" title="Ver arquivo PDF"><i class="fa-regular fa-file-pdf"></i></a>
+
+                            <a target="blank" href="${item.email}" class="btn btn-soft-primary me-1 mb-1 ${item.email !== undefined ? '' : 'd-none'} " data-bs-toggle="tooltip" data-bs-placement="top" title="Enviar email para pesquisador"><i class="fa-regular fa-envelope-open"></i></a>
+
+                            <a target="blank" href="${item.tel}" class="btn btn-soft-primary me-1 mb-1 ${item.tel !== undefined ? '' : 'd-none'} " data-bs-toggle="tooltip" data-bs-placement="top" title="Enviar email para pesquisador"><i class="fa-solid fa-phone"></i></a>
+
+
+
+                        </div>
+                    </div>
+                </div>
+
+                </div>
+            `;
+            cardColumns.appendChild(card);
+        });
+    })
+    .catch((error) => {
+        console.error('Error executing GraphQL query:', error);
+    });
+
+        }
+
+    $(document).ready(function() {
+        $('#searchForm_facepe').submit(function(e) {
+            e.preventDefault(); // Impede a submissão padrão do formulário
+            var searchTerm_facepe = $('#searchTerm_facepe').val();
+            const cognitoUser = userPool.getCurrentUser();
+
+            if (cognitoUser) {
+                cognitoUser.getSession(function (err, session) {
+                    if (err) {
+                        displayErrorMessage(err.message || 'Ocorreu um erro durante o login.');
+                        return;
+                    }
+                    const authToken = session.getIdToken().getJwtToken();
+
+                    executeGraphQLQueryFacepe(authToken, searchTerm_facepe);
+                });
+            }
+        });
+
+
+    });
+
+
+    </script>
+</body>
+</html>

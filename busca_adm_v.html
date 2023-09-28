@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"> -->
+    <link href="https://unpkg.com/bootstrap-table@1.22.0/dist/bootstrap-table.min.css" rel="stylesheet">
+
+    <script src="https://unpkg.com/tableexport.jquery.plugin/tableExport.min.js"></script>
+    <script src="https://unpkg.com/bootstrap-table@1.22.0/dist/bootstrap-table.min.js"></script>
+    <script src="https://unpkg.com/bootstrap-table@1.22.0/dist/extensions/export/bootstrap-table-export.min.js"></script>
+
+
+    <title>Centelha</title>
+</head>
+<body>
+
+    <div class="container-fluid">
+        <div class="row">
+
+            <div class="col">
+                <main class="mt-5">
+                    <div class="d-none">
+                        <div id="signupMessageonline" style="display: none;">
+                            <p>Bem-vindo, <span id="loggedInUserName"></span>!</p>
+                            <button id="logoutButton" class="btn btn-secondary">Sair</button>
+                        </div>
+                        <div id="signupMessage" style="display: none;">
+                            <p>Você não está logado.</p>
+                            <a href="cadastro_javascript.html" class="btn btn-primary">Cadastrar</a>
+                            <button id="loginMessageButton" class="btn btn-secondary">Entrar</button>
+                        </div>
+                    </div>
+
+                    <div id="errorContainer" style="display: none;"></div>
+
+                    <form id="loginForm" class="d-none">
+                        <div class="mb-3">
+                            <input type="text" class="form-control" id="username" placeholder="Usuário">
+                        </div>
+                        <div class="mb-3">
+                            <input type="password" class="form-control" id="password" placeholder="Senha">
+                            <button type="button" id="togglePassword" class="btn btn-secondary" onclick="togglePasswordVisibility()">Exibir Senha</button>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Entrar</button>
+                    </form>
+
+                    <form id="searchForm">
+                        <div class="mb-3">
+                            <!-- <p>Buscar</p> -->
+                            <input type="text" class="form-control" id="searchTerm" placeholder="Termo de busca">
+                        </div>
+                        <button id="searchButton" type="submit" class="btn btn-primary">Buscar</button>
+                    </form>
+
+                    <div id="authenticatedContent" style="display: none;" class="mt-2">
+                        <div class="card-columns" id="cardColumns"></div>
+                    </div>
+                </main>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/aws-sdk/2.395.0/aws-sdk.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@4.5.3/dist/amazon-cognito-identity.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+    <script>
+        function togglePasswordVisibility() {
+            var passwordInput = document.getElementById('password');
+            var togglePasswordButton = document.getElementById('togglePassword');
+
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                togglePasswordButton.textContent = 'Ocultar Senha';
+            } else {
+                passwordInput.type = 'password';
+                togglePasswordButton.textContent = 'Exibir Senha';
+            }
+        }
+    </script>
+
+    <script>
+        const poolData = {
+            UserPoolId: 'us-east-1_BaiGmcUff', // Seu User Pool ID aqui
+            ClientId: '26mu8coq65rn4pvl06eturijqh' // Seu Client ID aqui
+        };
+        const userPool = new AmazonCognitoIdentity.CognitoUserPool(poolData);
+
+        function redirectToAuthenticatedPage(name) {
+            document.getElementById('authenticatedContent').style.display = 'block';
+            document.getElementById('loggedInUserName').textContent = name;
+            document.getElementById('loginForm').style.display = 'none';
+            checkAuthentication();
+        }
+
+        function displayErrorMessage(message) {
+            const errorContainer = document.getElementById('errorContainer');
+            errorContainer.innerHTML = '';
+            const errorMessage = document.createElement('p');
+            errorMessage.textContent = message;
+            errorContainer.appendChild(errorMessage);
+            errorContainer.style.display = 'block';
+        }
+
+        function checkAuthentication() {
+            const loggedInUser = localStorage.getItem('loggedInUser');
+            const searchForm = document.getElementById('searchForm');
+            const signupMessage = document.getElementById('signupMessage');
+            const tableLog = document.getElementById('authenticatedContent');
+            const signupMessageonline = document.getElementById('signupMessageonline');
+
+            if (!loggedInUser) {
+                searchForm.style.display = 'none';
+                signupMessage.style.display = 'block';
+                signupMessageonline.style.display = 'none';
+            } else {
+                searchForm.style.display = 'block';
+                signupMessage.style.display = 'none';
+                tableLog.style.display = 'block';
+                signupMessageonline.style.display = 'block';
+            }
+        }
+
+        window.addEventListener('load', function () {
+            checkAuthentication();
+        });
+
+        function logout() {
+            const cognitoUser = userPool.getCurrentUser();
+            if (cognitoUser) {
+                cognitoUser.signOut();
+            }
+            localStorage.removeItem('loggedInUser');
+            window.location.href = 'logout.html'; // Redirecionar para a página logout.html
+        }
+
+        function executeGraphQLQuery(authToken, searchTerms) {
+            const query = `
+                query MyQuery {
+                    search(search: "${searchTerms}") {
+                        name
+                        institution
+                        leaders
+                        field
+                        productivity
+                        country
+                        description
+                        title
+                        link
+                    }
+                }
+            `;
+            const graphqlEndpoint = 'https://alprko6tgjdincp4yvnavge7cm.appsync-api.us-east-1.amazonaws.com/graphql'; // Substitua pelo URL do seu endpoint GraphQL
+
+            const headers = {
+                Authorization: authToken,
+                'Content-Type': 'application/json'
+            };
+
+            fetch(graphqlEndpoint, {
+                method: 'POST',
+                headers: headers,
+                body: JSON.stringify({
+                    query: query
+                })
+            })
+                .then((response) => response.json())
+                .then((data) => {
+                    const cardColumns = document.getElementById('cardColumns');
+                    cardColumns.innerHTML = '';
+
+                    data.data.search.forEach((item) => {
+                        const card = document.createElement('div');
+                        card.classList.add('card', 'mb-3');
+                        card.innerHTML = `
+                            <div class="card-body">
+                                <h5 class="card-title">${item.title}</h5>
+                                <h6 class="card-subtitle mb-2 text-muted">${item.institution}</h6>
+                                <p class="card-text">${item.leaders}</p>
+                                <a href="${item.link}" class="card-link">Link</a>
+                            </div>
+                        `;
+                        cardColumns.appendChild(card);
+                    });
+                })
+                .catch((error) => {
+                    console.error('Error executing GraphQL query:', error);
+                });
+        }
+
+        window.addEventListener('load', function () {
+            const loggedInUser = localStorage.getItem('loggedInUser');
+            if (loggedInUser) {
+                redirectToAuthenticatedPage(loggedInUser);
+
+                const cognitoUser = userPool.getCurrentUser();
+                if (cognitoUser) {
+                    cognitoUser.getSession(function (err, session) {
+                        if (err) {
+                            displayErrorMessage(err.message || 'Ocorreu um erro durante o login.');
+                            return;
+                        }
+                        const authToken = session.getIdToken().getJwtToken();
+
+                        document.getElementById('searchForm').addEventListener('submit', function (e) {
+                            e.preventDefault();
+                            const searchTerm = document.getElementById('searchTerm').value;
+                            executeGraphQLQuery(authToken, searchTerm);
+                        });
+
+                        executeGraphQLQuery(authToken, '');
+                    });
+                }
+            }
+        });
+
+        document.getElementById('loginForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            const authenticationData = {
+                Username: username,
+                Password: password
+            };
+            const authenticationDetails = new AmazonCognitoIdentity.AuthenticationDetails(authenticationData);
+
+            const userData = {
+                Username: username,
+                Pool: userPool
+            };
+            const cognitoUser = new AmazonCognitoIdentity.CognitoUser(userData);
+
+            cognitoUser.authenticateUser(authenticationDetails, {
+                onSuccess: function (result) {
+                    const accessToken = result.getAccessToken().getJwtToken();
+                    const name = result.getIdToken().payload.name;
+
+                    localStorage.setItem('loggedInUser', name);
+
+                    redirectToAuthenticatedPage(name);
+                },
+                onFailure: function (err) {
+                    displayErrorMessage(err.message || 'Ocorreu um erro durante o login.');
+                }
+            });
+        });
+
+        document.getElementById('logoutButton').addEventListener('click', logout);
+    </script>
+</body>
+</html>
