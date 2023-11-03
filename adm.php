@@ -1,3 +1,4 @@
+9
 <!DOCTYPE html>
 <!-- <html lang="en-US" dir="ltr"> -->
 
@@ -217,7 +218,7 @@
                                     <hr />
 
                                     <div class="px-3">
-                                        <button id="logoutButton"
+                                        <button id="logoutButton" onclick="logout()"
                                             class="btn btn-phoenix-secondary d-flex flex-center w-100"><span
                                                 class="me-2" data-feather="log-out"> </span> Sair</button>
                                     </div>
@@ -273,83 +274,85 @@
 
                             <div class="mx-n4 px-4 mx-lg-n6 px-lg-6 bg-white py-5 border-y border-300 fs--2">
 
-                            <div class="lead-details-container">
+                                <div class="lead-details-container">
 
-                            <nav class="navbar pb-4 px-0 sticky-top bg-soft nav-underline-scrollspy" id="navbar-deals-detail">
+                                    <nav class="navbar pb-4 px-0 sticky-top bg-soft nav-underline-scrollspy"
+                                        id="navbar-deals-detail">
 
 
 
-                                <!-- <h1>Exemplo de Abas</h1> -->
-                                <ul class="nav nav-tabs nav-underline ">
+                                        <!-- <h1>Exemplo de Abas</h1> -->
+                                        <ul class="nav nav-tabs nav-underline ">
 
-                                <li class="nav-item mb-1">
-                                        <a class="nav-link active" id="tab1" data-bs-toggle="tab"
-                                            href="#geral">Geral</a>
-                                    </li>
 
-                                    <li class="nav-item mb-1">
-                                        <a class="nav-link " id="tab1" data-bs-toggle="tab"
-                                            href="#embrapii">Embrapii</a>
-                                    </li>
 
-                                    <li class="nav-item mb-1">
-                                        <a class="nav-link " id="tab1" data-bs-toggle="tab"
-                                            href="#facepe">Facepe</a>
-                                    </li>
+                                            <li class="nav-item mb-1">
+                                                <a class="nav-link active" id="tab1" data-bs-toggle="tab"
+                                                    href="#pesquisadores">Pesquisadores</a>
+                                            </li>
 
-                                   <!--  <li class="nav-item mb-1">
+                                            <li class="nav-item mb-1">
+                                                <a class="nav-link " id="tab1" data-bs-toggle="tab"
+                                                    href="#finep">Finep</a>
+                                            </li>
+
+                                            <li class="nav-item mb-1">
+                                                <a class="nav-link " id="tab1" data-bs-toggle="tab"
+                                                    href="#embrapii">Embrapii</a>
+                                            </li>
+
+                                            <li class="nav-item mb-1">
+                                                <a class="nav-link " id="tab1" data-bs-toggle="tab"
+                                                    href="#facepe">Facepe</a>
+                                            </li>
+
+                                            <!--  <li class="nav-item mb-1">
                                         <a class="nav-link " id="tab1" data-bs-toggle="tab" href="#editais">Editais</a>
                                     </li>
                                     <li class="nav-item mb-1">
                                         <a class="nav-link" id="tab1" data-bs-toggle="tab" href="#embrapii">Embrapii</a>
                                     </li> -->
 
-                                </ul>
-                                </nav>
+                                        </ul>
+                                    </nav>
 
-                                <div class="tab-content">
-
-
-
-                                <div class="tab-pane fade show active" id="geral">
-
-                                    <?php include 'busca_adm.html' ?>
-
-                                </div>
-
-                                <div class="tab-pane fade show " id="embrapii">
-
-                                    <?php include 'busca_adm_embrapii.html' ?>
-
-                                </div>
-
-                                <div class="tab-pane fade show " id="facepe">
-
-                                <?php include 'busca_adm_facepe.html' ?>
-
-                                </div>
+                                    <div class="tab-content">
 
 
 
+                                        <div class="tab-pane fade show active" id="pesquisadores">
+
+                                            <?php include 'busca_adm_pesquisadores.html' ?>
+
+                                        </div>
+
+                                        <div class="tab-pane fade show " id="finep">
+
+                                            <?php include 'busca_adm_finep.html' ?>
+
+                                        </div>
+
+                                        <div class="tab-pane fade show " id="embrapii">
+
+                                            <?php include 'busca_adm_embrapii.html' ?>
+
+                                        </div>
+
+                                        <div class="tab-pane fade show " id="facepe">
+
+                                            <?php include 'busca_adm_facepe.html' ?>
+
+                                        </div>
 
 
 
-
-
-
-
-
-
-
-                                </div>
+                                    </div>
 
 
                                 </div>
 
 
                             </div>
-
-
 
 
 
@@ -496,12 +499,16 @@
     });
 
     function logout() {
-        const cognitoUser = userPool.getCurrentUser();
         if (cognitoUser) {
             cognitoUser.signOut();
+            console.log('Usuário desconectado com sucesso.');
+            // alert('Você foi desconectado com sucesso.');
+            window.location.href = 'index.php'; // Substitua com a URL desejada
+        } else {
+            console.log('Nenhum usuário conectado.');
+            window.location.href = 'index.php';
+            // alert('Nenhum usuário conectado.');
         }
-        localStorage.removeItem('loggedInUser');
-        window.location.href = 'logout.html'; // Redirecionar para a página logout.html
     }
 
 
@@ -571,7 +578,7 @@
 
 
 
-    <script>
+    <!-- <script>
     setInterval(function() {
         const loggedInUser = localStorage.getItem('loggedInUser');
         if (loggedInUser) {
@@ -581,7 +588,7 @@
             window.location.assign('index.php');
         }
     }, 1);
-    </script>
+    </script> -->
 
 
 </body>

@@ -67,10 +67,11 @@
       <div class="container-fluid px-0">
         <div class="container">
           <div class="row flex-center min-vh-100 py-5">
-            <div class="col-sm-10 col-md-8 col-lg-5 col-xl-5 col-xxl-3"><a class="d-flex flex-center text-decoration-none mb-4" href="../../../index.php">
-                <div class="d-flex align-items-center fw-bolder fs-5 d-inline-block"><img src="https://deployvr.online/define/assets/img/brand2/centelha.png" alt="Centelha" width="320" />
-                </div>
-              </a>
+            <div class="col-sm-10 col-md-8 col-lg-5 col-xl-5 col-xxl-3">
+                <a class="d-flex flex-center text-decoration-none mb-4" href="../../../index.php">
+                  <div class="d-flex align-items-center fw-bolder fs-5 d-inline-block"><img src="https://deployvr.online/define/assets/img/brand2/centelha.png" alt="Centelha" width="320" />
+                  </div>
+                </a>
               <div class="text-center mb-7">
                 <h3 class="text-1000">Acessar Sistema</h3>
                 <p class="text-700">Tenha acesso à sua conta</p>
@@ -108,6 +109,36 @@
 
               <button id="resendValidationButton" class="btn btn-phoenix-secondary w-100">Reenviar validação por email</button>
             </div>
+
+            <div id="recuperacao" class="col-sm-10 col-md-8 col-lg-5 col-xl-5 col-xxl-3">
+
+                </div>
+              </a>
+
+            <div  id="errorContainer" style="display: none;"></div>
+            <div id="recuperacao" style="display: none;" class="position-relative">
+              <hr class="bg-200 mt-5 mb-4" />
+              <h4>Recuperar Senha</h4>
+
+              <form id="forgotPasswordForm">
+
+
+                <div class="mb-3 text-start">
+                  <label class="form-label" for="email">Email</label>
+                  <div class="form-icon-container">
+                    <input class="form-control form-icon-input" id="email" type="email" placeholder="name@example.com" required><span class="fas fa-user text-900 fs--1 form-icon"></span>
+                  </div>
+                </div>
+
+
+                <input class="btn btn-phoenix-secondary w-100" type="submit" value="Enviar Email de Recuperação">
+              </form>
+            </div>
+
+
+          </div>
+
+
           </div>
         </div>
       </div>
@@ -166,6 +197,36 @@
       };
       const userPool = new AmazonCognitoIdentity.CognitoUserPool(poolData);
 
+
+
+      $('#forgotPasswordForm').submit(function(event) {
+    event.preventDefault();
+    var email = $('#email').val();
+
+    var userData = {
+      Username: email,
+      Pool: userPool
+    };
+    var cognitoUser = new AmazonCognitoIdentity.CognitoUser(userData);
+
+    cognitoUser.forgotPassword({
+      onSuccess: function (result) {
+        console.log('Sucesso: ', result);
+        alert('Um email de recuperação foi enviado para o endereço fornecido.');
+      },
+      onFailure: function(err) {
+        console.log('Erro: ', err);
+        alert('Ocorreu um erro ao enviar o email de recuperação. Verifique se o endereço de email está correto e tente novamente.');
+      },
+      inputVerificationCode() {
+        var verificationCode = prompt('Por favor, insira o código de verificação enviado para o seu email.');
+        var newPassword = prompt('Por favor, insira sua nova senha.');
+        cognitoUser.confirmPassword(verificationCode, newPassword, this);
+      }
+    });
+  });
+
+
       function redirectToAuthenticatedPage(name) {
           document.getElementById('authenticatedContent').style.display = 'block';
           document.getElementById('loggedInUserName').textContent = name;
@@ -221,14 +282,17 @@
 
 
 
-      function logout() {
-          const cognitoUser = userPool.getCurrentUser();
-          if (cognitoUser) {
-              cognitoUser.signOut();
-          }
-          localStorage.removeItem('loggedInUser');
-          window.location.href = 'logout.html'; // Redirecionar para a página logout.html
+function logout() {
+      if (cognitoUser) {
+        cognitoUser.signOut();
+        console.log('Usuário desconectado com sucesso.');
+        alert('Você foi desconectado com sucesso.');
+        // Adicione redirecionamento para a página de login, se necessário.
+      } else {
+        console.log('Nenhum usuário conectado.');
+        alert('Nenhum usuário conectado.');
       }
+    }
 
       function executeGraphQLQuery(authToken, searchTerms) {
           const query = `
@@ -349,6 +413,10 @@
       });
 
       document.getElementById('logoutButton').addEventListener('click', logout);
+
+
+
+
   </script>
 
 
@@ -372,6 +440,12 @@
     });
   });
 </script>
+
+
+
+
+
+
 
   </body>
 
